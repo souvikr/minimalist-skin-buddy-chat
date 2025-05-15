@@ -54,17 +54,17 @@ serve(async (req) => {
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
-    // Use much shorter prompt for faster response
+    // Short and focused prompt for faster response
     const messages = [
       {
         role: 'system',
-        content: `You're a skincare assistant. Format product names with ** (e.g. **Niacinamide 10%**) without the word "Beminimalist". Recommend 3 products for user's concern.`
+        content: `You're a skincare expert. Format product names with ** (e.g. **Niacinamide 10%**). Don't include the word "Beminimalist" in product names. Recommend 3 products for the user's concern.`
       }
     ];
 
     // Construct the API request body based on whether an image is present
     let openAIRequestBody: any = {
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       max_tokens: 400,
     };
     
@@ -121,16 +121,80 @@ serve(async (req) => {
       
       console.log("Extracted product names:", extractedProductNames);
       
-      // Query database for these products
+      // Query database for these products - match more intelligently using LIKE
+      let matchQuery = extractedProductNames.map(name => {
+        const terms = name.split(' ').filter(term => term.length > 2);
+        return terms.map(term => `name.ilike.%${term}%`).join(' or ');
+      }).join(' or ');
+      
+      // Fallback if no terms were extracted
+      if (!matchQuery) {
+        matchQuery = "id.gt.0"; // Match all products
+      }
+
       const { data: matchedProducts, error: productsError } = await supabase
         .from('products')
         .select('*')
-        .or(extractedProductNames.map(name => `name.ilike.%${name}%`).join(','));
+        .or(matchQuery);
       
       if (productsError) {
         console.error("Error fetching specific products:", productsError);
       } else if (matchedProducts && matchedProducts.length > 0) {
-        recommendedProducts = matchedProducts.slice(0, 3);
+        // Get products based on relevance to user's query
+        const { data: relevantProducts } = await supabase
+          .from('products')
+          .select('*, skin_concerns, key_ingredients, description')
+          .order('id', { ascending: false }) 
+          .limit(10);
+          
+        if (relevantProducts && relevantProducts.length > 0) {
+          // Score products by matching skin concerns and ingredients mentioned in the query
+          const scoredProducts = relevantProducts.map(product => {
+            let score = 0;
+            
+            // Extract keywords from user message
+            const keywords = message.toLowerCase().split(/\s+/);
+            
+            // Score based on skin concerns match
+            if (product.skin_concerns) {
+              product.skin_concerns.forEach((concern: string) => {
+                if (keywords.some(keyword => concern.toLowerCase().includes(keyword))) {
+                  score += 3;
+                }
+              });
+            }
+            
+            // Score based on key ingredients match
+            if (product.key_ingredients) {
+              product.key_ingredients.forEach((ingredient: string) => {
+                if (keywords.some(keyword => ingredient.toLowerCase().includes(keyword))) {
+                  score += 2;
+                }
+              });
+            }
+            
+            // Score based on description match
+            if (product.description) {
+              keywords.forEach(keyword => {
+                if (product.description.toLowerCase().includes(keyword)) {
+                  score += 1;
+                }
+              });
+            }
+            
+            return { ...product, score };
+          });
+          
+          // Sort by score (highest first) and take top 3
+          recommendedProducts = scoredProducts
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
+        }
+        
+        // If still no products, use matched products as fallback
+        if (recommendedProducts.length === 0) {
+          recommendedProducts = matchedProducts.slice(0, 3);
+        }
       }
     }
     
@@ -140,7 +204,7 @@ serve(async (req) => {
         .from('products')
         .select('*')
         .limit(3)
-        .order('name', { ascending: true });  // Use different order to avoid same products
+        .order('id', { ascending: false });  
       
       if (defaultError) {
         console.error("Error fetching default products:", defaultError);

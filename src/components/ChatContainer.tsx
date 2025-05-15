@@ -5,6 +5,7 @@ import ChatInput from './ChatInput';
 import { getChatResponse, Product } from '@/services/openaiService';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export interface Message {
   text: string;
@@ -21,6 +22,7 @@ const ChatContainer = () => {
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const isMobile = useIsMobile();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -117,8 +119,8 @@ const ChatContainer = () => {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full relative">
-      <div className="flex-1 overflow-y-auto p-4">
+    <div className="flex flex-col h-full relative pb-16 sm:pb-0">
+      <div className="flex-1 overflow-y-auto p-2 sm:p-4">
         {messages.map((msg, index) => (
           <ChatMessage 
             key={index} 
@@ -126,6 +128,7 @@ const ChatContainer = () => {
             isUser={msg.isUser}
             products={msg.products}
             imageUrl={msg.imageUrl}
+            isMobile={isMobile}
           />
         ))}
         {isLoading && (
@@ -141,7 +144,9 @@ const ChatContainer = () => {
         )}
         <div ref={messagesEndRef} />
       </div>
-      <ChatInput onSendMessage={handleSendMessage} />
+      <div className="fixed bottom-0 left-0 right-0 bg-white sm:relative">
+        <ChatInput onSendMessage={handleSendMessage} />
+      </div>
     </div>
   );
 };
