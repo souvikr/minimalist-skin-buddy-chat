@@ -5,9 +5,17 @@ import ChatInput from './ChatInput';
 import { getChatResponse } from '@/services/openaiService';
 import { toast } from "@/components/ui/use-toast";
 
+export interface Product {
+  name: string;
+  description: string;
+  image: string;
+  isAlternative?: boolean;
+}
+
 export interface Message {
   text: string;
   isUser: boolean;
+  products?: Product[];
 }
 
 const ChatContainer = () => {
@@ -21,6 +29,26 @@ const ChatContainer = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Sample product data
+  const sampleProducts = [
+    {
+      name: "Minimalist 10% Niacinamide Serum",
+      description: "Reduces excess oil, treats hyperpigmentation and improves skin texture",
+      image: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
+    },
+    {
+      name: "Minimalist 2% Salicylic Acid",
+      description: "Treats acne and unclogs pores with gentle exfoliation",
+      image: "https://images.unsplash.com/photo-1582562124811-c09040d0a901?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
+    },
+    {
+      name: "CeraVe Moisturizing Cream",
+      description: "Hydrates dry skin with ceramides and hyaluronic acid",
+      image: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+      isAlternative: true
+    }
+  ];
+
   const handleSendMessage = async (message: string) => {
     // Add user message
     setMessages(prev => [...prev, { text: message, isUser: true }]);
@@ -29,7 +57,22 @@ const ChatContainer = () => {
     
     try {
       const response = await getChatResponse(message);
-      setMessages(prev => [...prev, { text: response, isUser: false }]);
+      
+      // This is just for demo purposes - in a real app, you would parse the response
+      // to detect product recommendations and add them to the message
+      const newMessage: Message = { text: response, isUser: false };
+      
+      // For demo: If message contains specific keywords, add product recommendations
+      if (
+        message.toLowerCase().includes('acne') || 
+        message.toLowerCase().includes('product') ||
+        message.toLowerCase().includes('recommendation')
+      ) {
+        // Add sample products to the bot's response
+        newMessage.products = sampleProducts;
+      }
+      
+      setMessages(prev => [...prev, newMessage]);
     } catch (error) {
       console.error("Failed to get chat response:", error);
       toast({
@@ -51,7 +94,12 @@ const ChatContainer = () => {
     <div className="flex flex-col h-full relative">
       <div className="flex-1 overflow-y-auto p-4">
         {messages.map((msg, index) => (
-          <ChatMessage key={index} message={msg.text} isUser={msg.isUser} />
+          <ChatMessage 
+            key={index} 
+            message={msg.text} 
+            isUser={msg.isUser}
+            products={msg.products}
+          />
         ))}
         {isLoading && (
           <div className="flex justify-start mb-4">
