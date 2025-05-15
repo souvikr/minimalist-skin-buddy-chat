@@ -20,15 +20,15 @@ const ProductCarousel = ({ products }: ProductCarouselProps) => {
       <Carousel className="w-full">
         <CarouselContent>
           {products.map((product, index) => (
-            <CarouselItem key={product.id || index} className="basis-full md:basis-1/3 h-[320px] px-1">
+            <CarouselItem key={product.id || index} className="basis-full md:basis-full h-[360px] px-1">
               <div className="h-full">
                 <ProductCard product={product} />
               </div>
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="left-0" />
-        <CarouselNext className="right-0" />
+        <CarouselPrevious />
+        <CarouselNext />
       </Carousel>
     </div>
   );

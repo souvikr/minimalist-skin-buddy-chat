@@ -27,30 +27,30 @@ const ProductCard = ({ product }: ProductProps) => {
 
   return (
     <Card className={cn(
-      "overflow-hidden w-full h-full flex flex-col transition-all hover:shadow-md",
+      "overflow-hidden w-full flex flex-col transition-all hover:shadow-md h-[360px]",
       'isAlternative' in product && product.isAlternative ? "border-t-2 border-t-amber-500" : ""
     )}>
       {product.image_url && (
-        <div className="w-full h-40 overflow-hidden">
+        <div className="w-full h-36 overflow-hidden flex items-center justify-center bg-gray-50">
           <img 
             src={product.image_url} 
             alt={product.name} 
-            className="w-full h-full object-cover"
+            className="h-full object-contain max-w-full"
           />
         </div>
       )}
-      <CardHeader className="p-3 flex-none">
-        <h3 className="font-bold text-sm line-clamp-2">{product.name}</h3>
+      <CardHeader className="p-3 pb-0 flex-none">
+        <h3 className="font-bold text-sm line-clamp-2 h-10">{product.name}</h3>
         {'isAlternative' in product && product.isAlternative && (
           <span className="text-xs text-amber-600 font-semibold">
             Alternative Recommendation
           </span>
         )}
       </CardHeader>
-      <CardContent className="p-3 pt-0 flex-grow">
-        <p className="text-xs text-gray-600 line-clamp-3">{product.description}</p>
+      <CardContent className="p-3 pt-0 flex-grow overflow-hidden">
+        <p className="text-xs text-gray-600 line-clamp-4 h-16">{product.description}</p>
       </CardContent>
-      <CardFooter className="p-3 pt-0 flex-none">
+      <CardFooter className="p-3 pt-0 flex-none mt-auto">
         <Button 
           variant="outline" 
           className="w-full text-xs h-8"

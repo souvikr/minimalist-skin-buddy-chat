@@ -54,11 +54,11 @@ serve(async (req) => {
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
-    // Optimize prompt - Make it much shorter for faster response
+    // Use much shorter prompt for faster response
     const messages = [
       {
         role: 'system',
-        content: `You're a skincare assistant. Give brief advice and recommend Beminimalist products. Format product names with ** (e.g. **Beminimalist Niacinamide**). Always recommend 3 products. Keep responses concise.`
+        content: `You're a skincare assistant. Format product names with ** (e.g. **Niacinamide 10%**) without the word "Beminimalist". Recommend 3 products for user's concern.`
       }
     ];
 
@@ -88,8 +88,6 @@ serve(async (req) => {
       ];
     }
     
-    console.log("Sending request to OpenAI with API key:", openAIApiKey ? "Key exists" : "No key found");
-    
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -109,18 +107,50 @@ serve(async (req) => {
     const aiData = await response.json();
     const aiResponse = aiData.choices[0].message.content;
     
-    // Get 3 relevant products for every query
-    const { data: products, error: productsError } = await supabase
-      .from('products')
-      .select('*')
-      .limit(3);
+    // Extract product names from the AI response
+    const productNameRegex = /\*\*(.*?)\*\*/g;
+    const productMatches = aiResponse.match(productNameRegex);
     
-    if (productsError) {
-      console.error("Error fetching products:", productsError);
+    let recommendedProducts = [];
+    
+    if (productMatches && productMatches.length > 0) {
+      // Extract product names without the asterisks
+      const extractedProductNames = productMatches.map(match => 
+        match.replace(/\*\*/g, '')
+      );
+      
+      console.log("Extracted product names:", extractedProductNames);
+      
+      // Query database for these products
+      const { data: matchedProducts, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .or(extractedProductNames.map(name => `name.ilike.%${name}%`).join(','));
+      
+      if (productsError) {
+        console.error("Error fetching specific products:", productsError);
+      } else if (matchedProducts && matchedProducts.length > 0) {
+        recommendedProducts = matchedProducts.slice(0, 3);
+      }
+    }
+    
+    // If we couldn't find the specific products or none were mentioned, get default products
+    if (recommendedProducts.length === 0) {
+      const { data: defaultProducts, error: defaultError } = await supabase
+        .from('products')
+        .select('*')
+        .limit(3)
+        .order('name', { ascending: true });  // Use different order to avoid same products
+      
+      if (defaultError) {
+        console.error("Error fetching default products:", defaultError);
+      } else {
+        recommendedProducts = defaultProducts || [];
+      }
     }
     
     return new Response(
-      JSON.stringify({ response: aiResponse, products: products || [] }),
+      JSON.stringify({ response: aiResponse, products: recommendedProducts }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
