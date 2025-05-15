@@ -33,7 +33,12 @@ serve(async (req) => {
       if (imageFile && imageFile instanceof File) {
         const arrayBuffer = await imageFile.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
-        const base64Image = btoa(String.fromCharCode(...uint8Array));
+        // Safely convert to base64 without recursive calls
+        const base64Image = btoa(
+          Array.from(uint8Array)
+            .map(byte => String.fromCharCode(byte))
+            .join('')
+        );
         imageData = `data:${imageFile.type};base64,${base64Image}`;
       }
     } else {
