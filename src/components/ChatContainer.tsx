@@ -4,17 +4,19 @@ import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import { getChatResponse, Product } from '@/services/openaiService';
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Message {
   text: string;
   isUser: boolean;
   products?: Product[];
+  imageUrl?: string;
 }
 
 const ChatContainer = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
-      text: "Hello! I'm your Minimalist Skincare Assistant. How can I help you with your skin today? You can describe your skin concerns, ask for product advice, or get a personalized skincare routine.",
+      text: "Hello! I'm your Minimalist Skincare Assistant. How can I help you with your skin today? You can describe your skin concerns, ask for product advice, or get a personalized skincare routine. You can also upload a photo of your skin for a more personalized recommendation.",
       isUser: false
     }
   ]);
@@ -22,14 +24,35 @@ const ChatContainer = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSendMessage = async (message: string) => {
-    // Add user message
-    setMessages(prev => [...prev, { text: message, isUser: true }]);
+  const handleSendMessage = async (message: string, imageFile?: File) => {
+    let imageUrl: string | undefined;
+    
+    // Add user message to the chat
+    if (imageFile) {
+      // Create temporary object URL for immediate display
+      imageUrl = URL.createObjectURL(imageFile);
+      setMessages(prev => [...prev, { 
+        text: message || "Here's a photo of my skin concern.", 
+        isUser: true,
+        imageUrl
+      }]);
+    } else {
+      // Text-only message
+      setMessages(prev => [...prev, { text: message, isUser: true }]);
+    }
     
     setIsLoading(true);
     
     try {
-      const response = await getChatResponse(message);
+      let response;
+      
+      if (imageFile) {
+        // Handle message with image
+        response = await sendMessageWithImage(message, imageFile);
+      } else {
+        // Handle text-only message
+        response = await getChatResponse(message);
+      }
       
       const newMessage: Message = { 
         text: response.text, 
@@ -50,6 +73,32 @@ const ChatContainer = () => {
     }
   };
 
+  const sendMessageWithImage = async (message: string, imageFile: File): Promise<{text: string, products: Product[]}> => {
+    try {
+      // Create FormData object for sending both text and image
+      const formData = new FormData();
+      formData.append('message', message);
+      formData.append('image', imageFile);
+      
+      // Call Supabase Edge Function with formData
+      const { data, error } = await supabase.functions.invoke('skincare-assistant', {
+        body: formData,
+      });
+      
+      if (error) {
+        throw new Error(error.message || 'Failed to get response from skincare assistant');
+      }
+      
+      return {
+        text: data.response,
+        products: data.products || []
+      };
+    } catch (error) {
+      console.error('Error calling skincare-assistant function with image:', error);
+      throw error;
+    }
+  };
+
   // Scroll to bottom whenever messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -64,6 +113,7 @@ const ChatContainer = () => {
             message={msg.text} 
             isUser={msg.isUser}
             products={msg.products}
+            imageUrl={msg.imageUrl}
           />
         ))}
         {isLoading && (

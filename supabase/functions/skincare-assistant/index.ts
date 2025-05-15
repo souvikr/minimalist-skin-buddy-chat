@@ -18,24 +18,42 @@ serve(async (req) => {
   }
 
   try {
-    const { message } = await req.json();
+    // Process the request body based on content type
+    let message = '';
+    let imageData = null;
+    
+    const contentType = req.headers.get('content-type') || '';
+    
+    if (contentType.includes('multipart/form-data')) {
+      // Handle multipart form data (with image)
+      const formData = await req.formData();
+      message = formData.get('message')?.toString() || '';
+      
+      const imageFile = formData.get('image');
+      if (imageFile && imageFile instanceof File) {
+        const arrayBuffer = await imageFile.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const base64Image = btoa(String.fromCharCode(...uint8Array));
+        imageData = `data:${imageFile.type};base64,${base64Image}`;
+      }
+    } else {
+      // Handle JSON data (text-only)
+      const { message: textMessage } = await req.json();
+      message = textMessage;
+    }
+    
+    if (!message && !imageData) {
+      throw new Error('No message or image provided');
+    }
 
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openAIApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a helpful minimalist skincare assistant. Provide concise, evidence-based skincare advice. Focus on minimal effective routines and ingredients that work. Avoid recommending excessive products.
+    // Prepare messages for OpenAI API
+    const messages = [
+      {
+        role: 'system',
+        content: `You are a helpful minimalist skincare assistant. Provide concise, evidence-based skincare advice. Focus on minimal effective routines and ingredients that work. Avoid recommending excessive products.
 
 When recommending products, specifically suggest products from https://beminimalist.co/ whenever relevant. 
 
@@ -53,14 +71,43 @@ When providing important tips or warnings:
 - Begin with "Warning:" for contraindications or cautions (e.g., "Warning: Vitamin C and Niacinamide should be used with caution together.")
 
 Focus on Minimalist brand products first, but you can recommend alternatives if needed for specific concerns.`
-          },
-          {
-            role: 'user',
-            content: message
-          }
-        ],
-        max_tokens: 500,
-      })
+      }
+    ];
+
+    // Construct the API request body based on whether an image is present
+    let openAIRequestBody: any = {
+      model: 'gpt-4o-mini',
+      max_tokens: 500,
+    };
+    
+    if (imageData) {
+      // Using the chat completions API with image support
+      openAIRequestBody.messages = [
+        ...messages,
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: message },
+            { type: 'image_url', image_url: { url: imageData } }
+          ]
+        }
+      ];
+    } else {
+      // Text-only request
+      openAIRequestBody.messages = [
+        ...messages,
+        { role: 'user', content: message }
+      ];
+    }
+    
+    // Call OpenAI API
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openAIApiKey}`,
+      },
+      body: JSON.stringify(openAIRequestBody)
     });
     
     if (!response.ok) {
@@ -113,7 +160,7 @@ async function getRelevantProducts(supabase, message, response) {
   
   // Extract product categories mentioned
   const categories = [];
-  const categoriesToCheck = ['cleanser', 'serum', 'moisturizer', 'sunscreen'];
+  const categoriesToCheck = ['cleanser', 'serum', 'moisturizer', 'sunscreen', 'toner'];
   
   categoriesToCheck.forEach(category => {
     if (combinedText.includes(category)) {

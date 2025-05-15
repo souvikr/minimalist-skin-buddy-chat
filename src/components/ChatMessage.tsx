@@ -10,9 +10,10 @@ interface ChatMessageProps {
   message: string;
   isUser: boolean;
   products?: Product[];
+  imageUrl?: string;
 }
 
-const ChatMessage = ({ message, isUser, products }: ChatMessageProps) => {
+const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) => {
   // Function to format message text with paragraphs, bullet points, and numbered lists
   const formatMessage = (text: string) => {
     const lines = text.split('\n');
@@ -133,6 +134,17 @@ const ChatMessage = ({ message, isUser, products }: ChatMessageProps) => {
         "max-w-[80%] p-3 rounded-lg",
         isUser ? "bg-black text-white rounded-tr-none" : "bg-gray-100 text-black rounded-tl-none"
       )}>
+        {/* Display the image if it exists */}
+        {imageUrl && (
+          <div className="mb-3">
+            <img 
+              src={imageUrl} 
+              alt="Uploaded" 
+              className="rounded-lg max-h-60 object-contain"
+            />
+          </div>
+        )}
+
         <div className="text-sm sm:text-base">
           {formatMessage(message)}
         </div>
