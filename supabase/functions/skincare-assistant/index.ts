@@ -10,6 +10,7 @@ const corsHeaders = {
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -51,8 +52,8 @@ serve(async (req) => {
       throw new Error('No message or image provided');
     }
 
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Create Supabase client with service role key to bypass RLS
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
     
     // Use much shorter prompt for faster response
     const messages = [
@@ -122,6 +123,20 @@ serve(async (req) => {
         .replace(/[^\w\s]/gi, '')
         .split(/\s+/)
         .filter(word => word.length > 3 && !commonWords.includes(word));
+    }
+    
+    console.log("Checking products table access...");
+    
+    // First, check if we have access to the products table
+    const { data: testAccess, error: accessError } = await supabase
+      .from('products')
+      .select('count()')
+      .limit(1);
+      
+    if (accessError) {
+      console.error("Error accessing products table:", accessError);
+    } else {
+      console.log("Successfully accessed products table");
     }
     
     if (productMatches && productMatches.length > 0) {

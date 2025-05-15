@@ -5,4 +5,3 @@ project_id = "xvofewtxpbbukfatlmyi"
 verify_jwt = false
 # Increase limits for handling image uploads
 max_request_size_kb = 10000  # Allow up to 10MB requests
-
