@@ -121,95 +121,70 @@ serve(async (req) => {
       
       console.log("Extracted product names:", extractedProductNames);
       
-      // Query database for these products - match more intelligently using LIKE
-      let matchQuery = extractedProductNames.map(name => {
-        const terms = name.split(' ').filter(term => term.length > 2);
-        return terms.map(term => `name.ilike.%${term}%`).join(' or ');
-      }).join(' or ');
-      
-      // Fallback if no terms were extracted
-      if (!matchQuery) {
-        matchQuery = "id.gt.0"; // Match all products
-      }
-
-      const { data: matchedProducts, error: productsError } = await supabase
-        .from('products')
-        .select('*')
-        .or(matchQuery);
-      
-      if (productsError) {
-        console.error("Error fetching specific products:", productsError);
-      } else if (matchedProducts && matchedProducts.length > 0) {
-        // Get products based on relevance to user's query
-        const { data: relevantProducts } = await supabase
+      // First try to find exact matches for the recommended products
+      let exactMatches = [];
+      for (const name of extractedProductNames) {
+        const { data, error } = await supabase
           .from('products')
-          .select('*, skin_concerns, key_ingredients, description')
-          .order('id', { ascending: false }) 
-          .limit(10);
+          .select('*')
+          .ilike('name', `%${name}%`)
+          .limit(1);
           
-        if (relevantProducts && relevantProducts.length > 0) {
-          // Score products by matching skin concerns and ingredients mentioned in the query
-          const scoredProducts = relevantProducts.map(product => {
-            let score = 0;
-            
-            // Extract keywords from user message
-            const keywords = message.toLowerCase().split(/\s+/);
-            
-            // Score based on skin concerns match
-            if (product.skin_concerns) {
-              product.skin_concerns.forEach((concern: string) => {
-                if (keywords.some(keyword => concern.toLowerCase().includes(keyword))) {
-                  score += 3;
-                }
-              });
-            }
-            
-            // Score based on key ingredients match
-            if (product.key_ingredients) {
-              product.key_ingredients.forEach((ingredient: string) => {
-                if (keywords.some(keyword => ingredient.toLowerCase().includes(keyword))) {
-                  score += 2;
-                }
-              });
-            }
-            
-            // Score based on description match
-            if (product.description) {
-              keywords.forEach(keyword => {
-                if (product.description.toLowerCase().includes(keyword)) {
-                  score += 1;
-                }
-              });
-            }
-            
-            return { ...product, score };
-          });
-          
-          // Sort by score (highest first) and take top 3
-          recommendedProducts = scoredProducts
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 3);
+        if (!error && data && data.length > 0) {
+          exactMatches.push(data[0]);
         }
+      }
+      
+      // If we found exact matches, use them
+      if (exactMatches.length > 0) {
+        recommendedProducts = exactMatches;
+      }
+      
+      // If we don't have enough exact matches, add products based on keywords
+      if (recommendedProducts.length < 3) {
+        // Extract keywords from user query and AI response
+        const userKeywords = message.toLowerCase().split(/\s+/);
+        const aiKeywords = aiResponse.toLowerCase().split(/\s+/);
+        const combinedKeywords = [...new Set([...userKeywords, ...aiKeywords])];
         
-        // If still no products, use matched products as fallback
-        if (recommendedProducts.length === 0) {
-          recommendedProducts = matchedProducts.slice(0, 3);
+        // Get relevant keywords by filtering out common words
+        const commonWords = ['the', 'and', 'or', 'for', 'with', 'this', 'that', 'what', 'can', 'you', 'recommend', 'help', 'need', 'looking', 'products', 'product', 'skin', 'i', 'my', 'me', 'to', 'of', 'in', 'is', 'are'];
+        const relevantKeywords = combinedKeywords.filter(word => 
+          word.length > 3 && !commonWords.includes(word)
+        );
+        
+        // Query based on skin concerns and key ingredients matching the keywords
+        const { data: keywordMatches, error: keywordError } = await supabase
+          .from('products')
+          .select('*')
+          .or(
+            relevantKeywords.map(keyword => 
+              `skin_concerns.cs.{${keyword}},key_ingredients.cs.{${keyword}},description.ilike.%${keyword}%`
+            ).join(',')
+          )
+          .not('id', 'in', `(${recommendedProducts.map(p => p.id).join(',')})`)
+          .limit(3 - recommendedProducts.length);
+          
+        if (!keywordError && keywordMatches && keywordMatches.length > 0) {
+          recommendedProducts = [...recommendedProducts, ...keywordMatches];
         }
       }
     }
     
-    // If we couldn't find the specific products or none were mentioned, get default products
-    if (recommendedProducts.length === 0) {
+    // If we still don't have enough products, get random ones as fallback
+    if (recommendedProducts.length < 3) {
+      const neededProducts = 3 - recommendedProducts.length;
+      const existingIds = recommendedProducts.map(p => p.id);
+      
       const { data: defaultProducts, error: defaultError } = await supabase
         .from('products')
         .select('*')
-        .limit(3)
+        .not('id', 'in', `(${existingIds.join(',')})`)
+        .limit(neededProducts)
         .order('id', { ascending: false });  
       
-      if (defaultError) {
-        console.error("Error fetching default products:", defaultError);
-      } else {
-        recommendedProducts = defaultProducts || [];
+      if (!defaultError && defaultProducts && defaultProducts.length > 0) {
+        recommendedProducts = [...recommendedProducts, ...defaultProducts];
       }
     }
     
