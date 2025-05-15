@@ -1,1 +1,5 @@
+
 project_id = "xvofewtxpbbukfatlmyi"
+
+[functions.skincare-assistant]
+verify_jwt = false

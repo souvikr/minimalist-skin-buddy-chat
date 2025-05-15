@@ -8,14 +8,10 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import ProductCard from './ProductCard';
+import { Product } from '@/services/openaiService';
 
 interface ProductCarouselProps {
-  products: {
-    name: string;
-    description: string;
-    image: string;
-    isAlternative?: boolean;
-  }[];
+  products: Product[];
 }
 
 const ProductCarousel = ({ products }: ProductCarouselProps) => {
@@ -24,7 +20,7 @@ const ProductCarousel = ({ products }: ProductCarouselProps) => {
       <Carousel className="w-full">
         <CarouselContent>
           {products.map((product, index) => (
-            <CarouselItem key={index} className="md:basis-1/2">
+            <CarouselItem key={product.id || index} className="md:basis-1/2">
               <ProductCard product={product} />
             </CarouselItem>
           ))}

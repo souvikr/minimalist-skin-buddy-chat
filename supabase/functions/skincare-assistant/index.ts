@@ -1,0 +1,146 @@
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.32.0";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { message } = await req.json();
+
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // Call OpenAI API
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openAIApiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a helpful minimalist skincare assistant. Provide concise, evidence-based skincare advice. Focus on minimal effective routines and ingredients that work. Avoid recommending excessive products.
+
+When recommending products, specifically suggest products from https://beminimalist.co/ whenever relevant. 
+
+When providing a skincare routine:
+- Present it as a numbered list
+- Include specific product names when applicable
+- Include brief application instructions
+- Example format:
+  1. Cleanser: [Product Name] - Gently massage onto damp skin and rinse.
+  2. Serum: [Product Name] - Apply 2-3 drops to face and neck.
+  3. Moisturizer: [Product Name] - Apply evenly to face and neck.
+
+When providing important tips or warnings:
+- Begin with "Tip:" for educational information (e.g., "Tip: Avoid using strong exfoliants daily to protect your skin barrier.")
+- Begin with "Warning:" for contraindications or cautions (e.g., "Warning: Vitamin C and Niacinamide should be used with caution together.")
+
+Focus on Minimalist brand products first, but you can recommend alternatives if needed for specific concerns.`
+          },
+          {
+            role: 'user',
+            content: message
+          }
+        ],
+        max_tokens: 500,
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Failed to get response from OpenAI');
+    }
+    
+    const aiData = await response.json();
+    const aiResponse = aiData.choices[0].message.content;
+    
+    // Fetch relevant products based on the message and response
+    const { data: products, error: productsError } = await getRelevantProducts(supabase, message, aiResponse);
+    
+    if (productsError) {
+      console.error("Error fetching products:", productsError);
+    }
+    
+    return new Response(
+      JSON.stringify({ response: aiResponse, products: products || [] }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
+    );
+  } catch (error) {
+    console.error('Error in skincare-assistant function:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
+      }
+    );
+  }
+});
+
+// Function to get relevant products based on the message content and AI response
+async function getRelevantProducts(supabase, message, response) {
+  const combinedText = (message + " " + response).toLowerCase();
+  
+  // Extract skin concerns from the conversation
+  const skinConcerns = [];
+  const concernsToCheck = ['acne', 'dry', 'oily', 'sensitive', 'aging', 'pigmentation', 'dull', 'pores', 'blackheads'];
+  
+  concernsToCheck.forEach(concern => {
+    if (combinedText.includes(concern)) {
+      skinConcerns.push(concern);
+    }
+  });
+  
+  // Extract product categories mentioned
+  const categories = [];
+  const categoriesToCheck = ['cleanser', 'serum', 'moisturizer', 'sunscreen'];
+  
+  categoriesToCheck.forEach(category => {
+    if (combinedText.includes(category)) {
+      categories.push(category);
+    }
+  });
+  
+  // Build the query based on the extracted concerns and categories
+  let query = supabase.from('products').select('*');
+  
+  // If specific concerns are mentioned, filter by them
+  if (skinConcerns.length > 0) {
+    query = query.containedBy('skin_concerns', skinConcerns);
+  }
+  
+  // If specific categories are mentioned, filter by them
+  if (categories.length > 0) {
+    query = query.in('category', categories);
+  }
+  
+  // Limit to max 3 products
+  query = query.limit(3);
+  
+  // If no specific filters were applied, just get a few random products
+  if (skinConcerns.length === 0 && categories.length === 0) {
+    query = supabase.from('products').select('*').limit(3);
+  }
+  
+  return await query;
+}

@@ -1,17 +1,10 @@
-
 import React from 'react';
 import { cn } from "@/lib/utils";
 import ProductCard from './ProductCard';
 import ProductCarousel from './ProductCarousel';
 import { AlertTriangle, Lightbulb } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-interface Product {
-  name: string;
-  description: string;
-  image: string;
-  isAlternative?: boolean;
-}
+import { Product } from '@/services/openaiService';
 
 interface ChatMessageProps {
   message: string;
