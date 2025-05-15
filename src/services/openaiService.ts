@@ -46,7 +46,13 @@ export const getChatResponse = async (message: string): Promise<{text: string, p
     });
     
     if (error) {
+      console.error('Error invoking skincare-assistant function:', error);
       throw new Error(error.message || 'Failed to get response from skincare assistant');
+    }
+    
+    if (!data || !data.response) {
+      console.error('Invalid response from skincare-assistant:', data);
+      throw new Error('Invalid response data from skincare assistant');
     }
     
     return {

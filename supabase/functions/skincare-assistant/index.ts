@@ -112,6 +112,17 @@ serve(async (req) => {
     const productMatches = aiResponse.match(productNameRegex);
     
     let recommendedProducts = [];
+    let userKeywords = [];
+    
+    // Extract keywords from user message to use as fallback
+    if (message) {
+      // Split message into words and filter out common words
+      const commonWords = ['and', 'or', 'the', 'a', 'an', 'for', 'with', 'without', 'is', 'are', 'in', 'on', 'at', 'to', 'of', 'my', 'i', 'have', 'has', 'had', 'need', 'want'];
+      userKeywords = message.toLowerCase()
+        .replace(/[^\w\s]/gi, '')
+        .split(/\s+/)
+        .filter(word => word.length > 3 && !commonWords.includes(word));
+    }
     
     if (productMatches && productMatches.length > 0) {
       // Extract product names without the asterisks
@@ -121,33 +132,95 @@ serve(async (req) => {
       
       console.log("Extracted product names:", extractedProductNames);
       
-      // Query database for these products
-      const { data: matchedProducts, error: productsError } = await supabase
-        .from('products')
-        .select('*')
-        .or(extractedProductNames.map(name => `name.ilike.%${name}%`).join(','));
+      // First try exact matches
+      for (const name of extractedProductNames) {
+        // Try to find exact match first
+        const { data: exactMatches, error: exactError } = await supabase
+          .from('products')
+          .select('*')
+          .ilike('name', `%${name}%`)
+          .limit(1);
+          
+        if (!exactError && exactMatches && exactMatches.length > 0) {
+          recommendedProducts.push(exactMatches[0]);
+          if (recommendedProducts.length >= 3) break;
+        }
+      }
       
-      if (productsError) {
-        console.error("Error fetching specific products:", productsError);
-      } else if (matchedProducts && matchedProducts.length > 0) {
-        recommendedProducts = matchedProducts.slice(0, 3);
+      // If we don't have 3 products yet, look for partial matches
+      if (recommendedProducts.length < 3) {
+        for (const name of extractedProductNames) {
+          // Try matching keywords from the product name
+          const keywords = name.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+          
+          for (const keyword of keywords) {
+            if (recommendedProducts.length >= 3) break;
+            
+            const { data: keywordMatches, error: keywordError } = await supabase
+              .from('products')
+              .select('*')
+              .or(`name.ilike.%${keyword}%, description.ilike.%${keyword}%`)
+              .limit(3 - recommendedProducts.length);
+              
+            if (!keywordError && keywordMatches && keywordMatches.length > 0) {
+              for (const product of keywordMatches) {
+                // Check if product is not already in recommendedProducts
+                if (!recommendedProducts.some(p => p.id === product.id)) {
+                  recommendedProducts.push(product);
+                  if (recommendedProducts.length >= 3) break;
+                }
+              }
+            }
+          }
+        }
       }
     }
     
-    // If we couldn't find the specific products or none were mentioned, get default products
-    if (recommendedProducts.length === 0) {
+    // If we still don't have 3 products, use user keywords
+    if (recommendedProducts.length < 3 && userKeywords.length > 0) {
+      console.log("Using user keywords:", userKeywords);
+      
+      for (const keyword of userKeywords) {
+        if (recommendedProducts.length >= 3) break;
+        
+        const { data: keywordMatches, error: keywordError } = await supabase
+          .from('products')
+          .select('*')
+          .or(`name.ilike.%${keyword}%, description.ilike.%${keyword}%, 
+               skin_concerns.cs.{${keyword}}, key_ingredients.cs.{${keyword}}`)
+          .limit(3 - recommendedProducts.length);
+          
+        if (!keywordError && keywordMatches && keywordMatches.length > 0) {
+          for (const product of keywordMatches) {
+            // Check if product is not already in recommendedProducts
+            if (!recommendedProducts.some(p => p.id === product.id)) {
+              recommendedProducts.push(product);
+              if (recommendedProducts.length >= 3) break;
+            }
+          }
+        }
+      }
+    }
+    
+    // If we still don't have enough products, get random ones as fallback
+    if (recommendedProducts.length < 3) {
       const { data: defaultProducts, error: defaultError } = await supabase
         .from('products')
         .select('*')
-        .limit(3)
-        .order('name', { ascending: true });  // Use different order to avoid same products
+        .limit(3 - recommendedProducts.length)
+        .order('name', { ascending: true });
       
-      if (defaultError) {
-        console.error("Error fetching default products:", defaultError);
-      } else {
-        recommendedProducts = defaultProducts || [];
+      if (!defaultError && defaultProducts && defaultProducts.length > 0) {
+        for (const product of defaultProducts) {
+          // Check if product is not already in recommendedProducts
+          if (!recommendedProducts.some(p => p.id === product.id)) {
+            recommendedProducts.push(product);
+          }
+        }
       }
     }
+    
+    console.log(`Found ${recommendedProducts.length} products to recommend`);
     
     return new Response(
       JSON.stringify({ response: aiResponse, products: recommendedProducts }),

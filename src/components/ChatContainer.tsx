@@ -54,6 +54,8 @@ const ChatContainer = () => {
         response = await getChatResponse(message);
       }
       
+      console.log("Received response:", response);
+      
       const newMessage: Message = { 
         text: response.text, 
         isUser: false,

@@ -130,6 +130,8 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
     return formattedContent;
   };
 
+  console.log("Products in ChatMessage:", products);
+
   return (
     <div className={cn(
       "flex w-full mb-4",
