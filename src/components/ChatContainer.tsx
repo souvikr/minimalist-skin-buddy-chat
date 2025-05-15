@@ -56,12 +56,21 @@ const ChatContainer = () => {
         response = await getChatResponse(message);
       }
       
+      console.log('Response received:', response);
+      
+      // Verify the products are present in the response
+      if (!response.products || !Array.isArray(response.products)) {
+        console.warn('No products array in response:', response);
+        response.products = [];
+      }
+      
       const newMessage: Message = { 
         text: response.text, 
         isUser: false,
         products: response.products
       };
       
+      console.log('Adding message with products:', newMessage);
       setMessages(prev => [...prev, newMessage]);
     } catch (error) {
       console.error("Failed to get chat response:", error);
@@ -103,9 +112,11 @@ const ChatContainer = () => {
         throw new Error('Invalid response from skincare assistant');
       }
       
+      console.log('Image response data:', data);
+      
       return {
         text: data.response,
-        products: data.products || []
+        products: Array.isArray(data.products) ? data.products : []
       };
     } catch (error) {
       console.error('Error calling skincare-assistant function with image:', error);

@@ -24,6 +24,7 @@ export interface Product {
   category: string;
   skin_concerns: string[];
   key_ingredients: string[];
+  score?: number; // Added for scoring products
 }
 
 import { supabase } from "@/integrations/supabase/client";
@@ -46,12 +47,20 @@ export const getChatResponse = async (message: string): Promise<{text: string, p
     });
     
     if (error) {
+      console.error('Error from skincare-assistant function:', error);
       throw new Error(error.message || 'Failed to get response from skincare assistant');
     }
     
+    if (!data) {
+      console.error('No data returned from skincare-assistant function');
+      throw new Error('No data returned from skincare assistant');
+    }
+    
+    console.log('Response from skincare-assistant:', data);
+    
     return {
-      text: data.response,
-      products: data.products || []
+      text: data.response || '',
+      products: Array.isArray(data.products) ? data.products : []
     };
   } catch (error) {
     console.error('Error calling skincare-assistant function:', error);

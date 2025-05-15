@@ -155,8 +155,8 @@ const ChatMessage = ({ message, isUser, products, imageUrl, isMobile = false }: 
           {formatMessage(message)}
         </div>
         
-        {/* Render product cards if they exist */}
-        {products && products.length > 0 && (
+        {/* Debug output to check if products exist */}
+        {products && products.length > 0 ? (
           <div className="mt-2 sm:mt-3">
             {products.length === 1 ? (
               <ProductCard 
@@ -167,6 +167,8 @@ const ChatMessage = ({ message, isUser, products, imageUrl, isMobile = false }: 
               <ProductCarousel products={products} isMobile={isMobile} />
             )}
           </div>
+        ) : (
+          <div className="text-xs text-gray-500 mt-2">No product recommendations available</div>
         )}
       </div>
     </div>
