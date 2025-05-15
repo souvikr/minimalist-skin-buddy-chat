@@ -17,8 +17,12 @@ interface ProductProps {
 
 const ProductCard = ({ product }: ProductProps) => {
   const handleViewDetails = () => {
-    // Direct all products to beminimalist.co
-    window.open('https://beminimalist.co/', '_blank');
+    // Use product URL if available, otherwise fallback to Beminimalist home
+    if (product.product_url) {
+      window.open(product.product_url, '_blank');
+    } else {
+      window.open('https://beminimalist.co/', '_blank');
+    }
   };
 
   return (
@@ -43,7 +47,7 @@ const ProductCard = ({ product }: ProductProps) => {
           className="w-full text-xs h-8"
           onClick={handleViewDetails}
         >
-          View on Beminimalist.co
+          View Details
         </Button>
       </CardFooter>
     </Card>
