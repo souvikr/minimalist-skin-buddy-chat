@@ -38,8 +38,8 @@ serve(async (req) => {
       }
     } else {
       // Handle JSON data (text-only)
-      const { message: textMessage } = await req.json();
-      message = textMessage;
+      const body = await req.json();
+      message = body.message || '';
     }
     
     if (!message && !imageData) {
@@ -100,6 +100,8 @@ Focus on Minimalist brand products first, but you can recommend alternatives if 
       ];
     }
     
+    console.log("Sending request to OpenAI with API key:", openAIApiKey ? "Key exists" : "No key found");
+    
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -112,6 +114,7 @@ Focus on Minimalist brand products first, but you can recommend alternatives if 
     
     if (!response.ok) {
       const error = await response.json();
+      console.error("OpenAI API error:", error);
       throw new Error(error.error?.message || 'Failed to get response from OpenAI');
     }
     

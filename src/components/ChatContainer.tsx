@@ -65,9 +65,15 @@ const ChatContainer = () => {
       console.error("Failed to get chat response:", error);
       toast({
         title: "Error",
-        description: "Failed to get a response. Please try again later.",
+        description: "Failed to get a response. Please try again.",
         variant: "destructive",
       });
+      
+      // Add an error message to the chat
+      setMessages(prev => [...prev, { 
+        text: "Sorry, I couldn't process your request. Please try again.", 
+        isUser: false 
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +83,7 @@ const ChatContainer = () => {
     try {
       // Create FormData object for sending both text and image
       const formData = new FormData();
-      formData.append('message', message);
+      formData.append('message', message || "What can you tell me about this skin concern?");
       formData.append('image', imageFile);
       
       // Call Supabase Edge Function with formData
@@ -86,7 +92,13 @@ const ChatContainer = () => {
       });
       
       if (error) {
+        console.error("Supabase function error:", error);
         throw new Error(error.message || 'Failed to get response from skincare assistant');
+      }
+      
+      if (!data || !data.response) {
+        console.error("Invalid response from skincare assistant:", data);
+        throw new Error('Invalid response from skincare assistant');
       }
       
       return {
