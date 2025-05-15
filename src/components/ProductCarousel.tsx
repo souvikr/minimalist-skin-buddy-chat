@@ -16,12 +16,14 @@ interface ProductCarouselProps {
 
 const ProductCarousel = ({ products }: ProductCarouselProps) => {
   return (
-    <div className="w-full max-w-xs sm:max-w-md">
+    <div className="w-full max-w-md">
       <Carousel className="w-full">
         <CarouselContent>
           {products.map((product, index) => (
-            <CarouselItem key={product.id || index} className="md:basis-1/2">
-              <ProductCard product={product} />
+            <CarouselItem key={product.id || index} className="basis-full md:basis-1/3 h-[320px] px-1">
+              <div className="h-full">
+                <ProductCard product={product} />
+              </div>
             </CarouselItem>
           ))}
         </CarouselContent>

@@ -54,27 +54,18 @@ serve(async (req) => {
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
-    // Prepare messages for OpenAI API
+    // Optimize prompt - Make it much shorter for faster response
     const messages = [
       {
         role: 'system',
-        content: `You are a helpful skincare assistant. Provide concise, evidence-based skincare advice. Focus on minimal effective routines and ingredients that work.
-
-When recommending products, specifically suggest products from Be Minimalist whenever relevant. All product recommendations should include the brand name "Beminimalist" and appropriate formatting with ** around product names.
-
-When providing a skincare routine:
-- Present it clearly and concisely
-- Include specific product names with ** around them (e.g. **Beminimalist 2% Salicylic Acid Gel Cleanser**)
-- Format important keywords in bold using ** on either side
-
-Focus on Beminimalist brand products first.`
+        content: `You're a skincare assistant. Give brief advice and recommend Beminimalist products. Format product names with ** (e.g. **Beminimalist Niacinamide**). Always recommend 3 products. Keep responses concise.`
       }
     ];
 
     // Construct the API request body based on whether an image is present
     let openAIRequestBody: any = {
       model: 'gpt-4o',
-      max_tokens: 500,
+      max_tokens: 400,
     };
     
     if (imageData) {
@@ -118,8 +109,11 @@ Focus on Beminimalist brand products first.`
     const aiData = await response.json();
     const aiResponse = aiData.choices[0].message.content;
     
-    // Fetch relevant products based on the message and response
-    const { data: products, error: productsError } = await getRelevantProducts(supabase, message, aiResponse);
+    // Get 3 relevant products for every query
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('*')
+      .limit(3);
     
     if (productsError) {
       console.error("Error fetching products:", productsError);
@@ -143,51 +137,3 @@ Focus on Beminimalist brand products first.`
     );
   }
 });
-
-// Function to get relevant products based on the message content and AI response
-async function getRelevantProducts(supabase, message, response) {
-  const combinedText = (message + " " + response).toLowerCase();
-  
-  // Extract skin concerns from the conversation
-  const skinConcerns = [];
-  const concernsToCheck = ['acne', 'dry', 'oily', 'sensitive', 'aging', 'pigmentation', 'dull', 'pores', 'blackheads'];
-  
-  concernsToCheck.forEach(concern => {
-    if (combinedText.includes(concern)) {
-      skinConcerns.push(concern);
-    }
-  });
-  
-  // Extract product categories mentioned
-  const categories = [];
-  const categoriesToCheck = ['cleanser', 'serum', 'moisturizer', 'sunscreen', 'toner'];
-  
-  categoriesToCheck.forEach(category => {
-    if (combinedText.includes(category)) {
-      categories.push(category);
-    }
-  });
-  
-  // Build the query based on the extracted concerns and categories
-  let query = supabase.from('products').select('*');
-  
-  // If specific concerns are mentioned, filter by them
-  if (skinConcerns.length > 0) {
-    query = query.containedBy('skin_concerns', skinConcerns);
-  }
-  
-  // If specific categories are mentioned, filter by them
-  if (categories.length > 0) {
-    query = query.in('category', categories);
-  }
-  
-  // Limit to max 3 products
-  query = query.limit(3);
-  
-  // If no specific filters were applied, just get a few random products
-  if (skinConcerns.length === 0 && categories.length === 0) {
-    query = supabase.from('products').select('*').limit(3);
-  }
-  
-  return await query;
-}
