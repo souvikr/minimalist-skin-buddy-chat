@@ -8,13 +8,4 @@
 
 body {
   font-family: 'Poppins', sans-serif;
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
-  overflow-x: hidden;
-}
-
-@media (max-width: 640px) {
-  html, body {
-    font-size: 14px;
-  }
 }

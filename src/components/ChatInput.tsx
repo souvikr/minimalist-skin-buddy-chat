@@ -2,7 +2,6 @@
 import React, { useState, FormEvent, useRef, ChangeEvent } from 'react';
 import { Send, Paperclip, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ChatInputProps {
   onSendMessage: (message: string, imageFile?: File) => void;
@@ -13,7 +12,6 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isMobile = useIsMobile();
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -73,13 +71,13 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2 border-t border-gray-200 p-2 sm:p-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2 border-t border-gray-200 p-4">
       {imagePreview && (
         <div className="relative inline-block">
           <img 
             src={imagePreview} 
             alt="Selected" 
-            className="h-16 sm:h-24 rounded-lg object-cover" 
+            className="h-24 rounded-lg object-cover" 
           />
           <button
             type="button"
@@ -102,24 +100,24 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
         <button
           type="button"
           onClick={handleAttachImage}
-          className="p-2 sm:p-3 text-gray-500 hover:text-gray-800 transition-colors"
+          className="p-3 text-gray-500 hover:text-gray-800 transition-colors"
           aria-label="Attach image"
         >
-          <Paperclip size={isMobile ? 16 : 18} />
+          <Paperclip size={18} />
         </button>
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder={selectedImage ? "Add a description..." : "Type your skin concern here..."}
-          className="flex-1 p-2 sm:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-black text-sm sm:text-base"
+          placeholder={selectedImage ? "Add a description of your skin concern..." : "Type your skin concern here..."}
+          className="flex-1 p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-black"
         />
         <button
           type="submit"
-          className="p-2 sm:p-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+          className="p-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
           disabled={!message.trim() && !selectedImage}
         >
-          <Send size={isMobile ? 16 : 18} />
+          <Send size={18} />
         </button>
       </div>
     </form>

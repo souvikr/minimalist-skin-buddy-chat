@@ -10,10 +10,9 @@ interface ChatMessageProps {
   isUser: boolean;
   products?: Product[];
   imageUrl?: string;
-  isMobile?: boolean;
 }
 
-const ChatMessage = ({ message, isUser, products, imageUrl, isMobile = false }: ChatMessageProps) => {
+const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) => {
   // Function to format message text with paragraphs, bullet points, and numbered lists
   const formatMessage = (text: string) => {
     const lines = text.split('\n');
@@ -133,42 +132,39 @@ const ChatMessage = ({ message, isUser, products, imageUrl, isMobile = false }: 
 
   return (
     <div className={cn(
-      "flex w-full mb-3 sm:mb-4",
+      "flex w-full mb-4",
       isUser ? "justify-end" : "justify-start"
     )}>
       <div className={cn(
-        "max-w-[90%] sm:max-w-[80%] p-2 sm:p-3 rounded-lg",
+        "max-w-[80%] p-3 rounded-lg",
         isUser ? "bg-black text-white rounded-tr-none" : "bg-gray-100 text-black rounded-tl-none"
       )}>
         {/* Display the image if it exists */}
         {imageUrl && (
-          <div className="mb-2 sm:mb-3">
+          <div className="mb-3">
             <img 
               src={imageUrl} 
               alt="Uploaded" 
-              className="rounded-lg max-h-40 sm:max-h-60 object-contain"
+              className="rounded-lg max-h-60 object-contain"
             />
           </div>
         )}
 
-        <div className="text-xs sm:text-sm md:text-base">
+        <div className="text-sm sm:text-base">
           {formatMessage(message)}
         </div>
         
-        {/* Debug output to check if products exist */}
-        {products && products.length > 0 ? (
-          <div className="mt-2 sm:mt-3">
+        {/* Render product cards if they exist */}
+        {products && products.length > 0 && (
+          <div className="mt-3">
             {products.length === 1 ? (
               <ProductCard 
                 product={products[0]}
-                isMobile={isMobile}
               />
             ) : (
-              <ProductCarousel products={products} isMobile={isMobile} />
+              <ProductCarousel products={products} />
             )}
           </div>
-        ) : (
-          <div className="text-xs text-gray-500 mt-2">No product recommendations available</div>
         )}
       </div>
     </div>
