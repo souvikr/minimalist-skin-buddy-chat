@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { cn } from "@/lib/utils";
 import ProductCard from './ProductCard';
@@ -50,12 +51,32 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
       ];
     }
 
+    // Function to apply bold to product names and important terms
+    const formatBoldText = (text: string) => {
+      // Bold product names with ** around them
+      let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      
+      // Bold important skincare terms
+      const keyTerms = [
+        'Cleanser', 'Toner', 'Serum', 'Moisturizer', 'Sunscreen', 
+        'Salicylic Acid', 'Niacinamide', 'Vitamin B5', 'Vitamin C', 'Alpha Arbutin',
+        'oily', 'dry', 'sensitive', 'acne-prone', 'pigmentation', 'hydration'
+      ];
+      
+      keyTerms.forEach(term => {
+        const regex = new RegExp(`(?<![\\w\\*])(${term})(?![\\w\\*])`, 'g');
+        formattedText = formattedText.replace(regex, '<strong>$1</strong>');
+      });
+      
+      return <span dangerouslySetInnerHTML={{ __html: formattedText }} />;
+    };
+
     // Process each line
     lines.forEach((line, i) => {
       const trimmedLine = line.trim();
       
-      // Check if this is a numbered list item
-      const numberedMatch = trimmedLine.match(/^(\d+)\.\s+(.*)/);
+      // Check if this is a numbered list item (improved regex to avoid duplication)
+      const numberedMatch = trimmedLine.match(/^(\d+)\.?\s+(.*)/);
       
       // Check if this is a bullet point
       const bulletMatch = trimmedLine.match(/^[\*\-]\s+(.*)/);
@@ -73,7 +94,12 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
           inList = true;
           listType = 'ol';
         }
-        listItems.push(<li key={`item-${keyCounter++}`}><strong>{numberedMatch[1]}. </strong>{numberedMatch[2]}</li>);
+        // Only use the number from the original text, not duplicated
+        listItems.push(
+          <li key={`item-${keyCounter++}`} className="mb-1">
+            {formatBoldText(numberedMatch[2])}
+          </li>
+        );
       }
       // Handle bullet list
       else if (bulletMatch) {
@@ -88,7 +114,11 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
           inList = true;
           listType = 'ul';
         }
-        listItems.push(<li key={`item-${keyCounter++}`}>{bulletMatch[1]}</li>);
+        listItems.push(
+          <li key={`item-${keyCounter++}`} className="mb-1">
+            {formatBoldText(bulletMatch[1])}
+          </li>
+        );
       }
       // Not a list item
       else {
@@ -97,7 +127,7 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
           if (listType === 'ul') {
             formattedContent.push(<ul key={`list-${keyCounter++}`} className="list-disc pl-5 mb-2">{listItems}</ul>);
           } else {
-            formattedContent.push(<ol key={`list-${keyCounter++}`} className="list-decimal pl-5 mb-2">{listItems}</ol>);
+            formattedContent.push(<ol key={`list-${keyCounter++}`} className="list-decimal pl-5 mb-3 gap-y-2">{listItems}</ol>);
           }
           listItems = [];
           inList = false;
@@ -105,7 +135,11 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
 
         // Add paragraph if not empty
         if (trimmedLine) {
-          formattedContent.push(<p key={`p-${keyCounter++}`} className="mb-2">{trimmedLine}</p>);
+          formattedContent.push(
+            <p key={`p-${keyCounter++}`} className="mb-2">
+              {formatBoldText(trimmedLine)}
+            </p>
+          );
         } else if (i < lines.length - 1) {
           // Add a break between paragraphs, but not at the very end
           formattedContent.push(<br key={`br-${keyCounter++}`} />);
