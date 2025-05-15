@@ -1,8 +1,8 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
-import ApiKeyInput from './ApiKeyInput';
-import { getChatResponse, getApiKey } from '@/services/openaiService';
+import { getChatResponse } from '@/services/openaiService';
 import { toast } from "@/components/ui/use-toast";
 
 export interface Message {
@@ -27,19 +27,6 @@ const ChatContainer = () => {
     
     setIsLoading(true);
     
-    // Check if API key is set
-    if (!getApiKey()) {
-      setMessages(prev => [
-        ...prev, 
-        { 
-          text: "Please set your OpenAI API key first by clicking the key icon in the top right corner.", 
-          isUser: false 
-        }
-      ]);
-      setIsLoading(false);
-      return;
-    }
-    
     try {
       const response = await getChatResponse(message);
       setMessages(prev => [...prev, { text: response, isUser: false }]);
@@ -47,7 +34,7 @@ const ChatContainer = () => {
       console.error("Failed to get chat response:", error);
       toast({
         title: "Error",
-        description: "Failed to get a response. Please check your API key and try again.",
+        description: "Failed to get a response. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -62,7 +49,6 @@ const ChatContainer = () => {
 
   return (
     <div className="flex flex-col h-full relative">
-      <ApiKeyInput />
       <div className="flex-1 overflow-y-auto p-4">
         {messages.map((msg, index) => (
           <ChatMessage key={index} message={msg.text} isUser={msg.isUser} />
