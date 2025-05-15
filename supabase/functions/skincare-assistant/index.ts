@@ -76,7 +76,7 @@ Focus on Beminimalist brand products first. Format important skincare terms in b
 
     // Construct the API request body based on whether an image is present
     let openAIRequestBody: any = {
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       max_tokens: 500,
     };
     
@@ -87,7 +87,7 @@ Focus on Beminimalist brand products first. Format important skincare terms in b
         {
           role: 'user',
           content: [
-            { type: 'text', text: message },
+            { type: 'text', text: message || "What can you recommend for this skin condition?" },
             { type: 'image_url', image_url: { url: imageData } }
           ]
         }
