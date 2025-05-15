@@ -1,5 +1,4 @@
-
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/use-toast";
 
 interface OpenAIResponseChoice {
   message: {

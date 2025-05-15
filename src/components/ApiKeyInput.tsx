@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getApiKey, setApiKey } from "@/services/openaiService";
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/use-toast";
 import { X, Key } from "lucide-react";
 
 const ApiKeyInput = () => {

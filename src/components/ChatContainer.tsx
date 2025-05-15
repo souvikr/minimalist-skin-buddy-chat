@@ -1,10 +1,9 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import ApiKeyInput from './ApiKeyInput';
 import { getChatResponse, getApiKey } from '@/services/openaiService';
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/use-toast";
 
 export interface Message {
   text: string;
