@@ -3,8 +3,6 @@ import React from 'react';
 import { cn } from "@/lib/utils";
 import ProductCard from './ProductCard';
 import ProductCarousel from './ProductCarousel';
-import { AlertTriangle, Lightbulb } from 'lucide-react';
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Product } from '@/services/openaiService';
 
 interface ChatMessageProps {
@@ -23,33 +21,6 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
     let listItems: JSX.Element[] = [];
     let listType: 'ul' | 'ol' = 'ul';
     let keyCounter = 0;
-
-    // Check for tip or warning content
-    const isTip = text.includes('Tip:');
-    const isWarning = text.includes('Warning:');
-
-    // If it's a tip or warning, display it with special styling
-    if (isTip || isWarning) {
-      const tipContent = text.replace(/^(Tip|Warning):/, '').trim();
-      return [
-        <Alert 
-          key={`alert-${keyCounter}`} 
-          className={cn(
-            "mb-2 mt-2",
-            isTip ? "border-l-4 border-l-blue-500" : "border-l-4 border-l-amber-500"
-          )}
-        >
-          {isTip ? 
-            <Lightbulb className="h-4 w-4 text-blue-500" /> : 
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-          }
-          <AlertDescription>
-            <span className="font-medium">{isTip ? 'Tip: ' : 'Warning: '}</span>
-            {tipContent}
-          </AlertDescription>
-        </Alert>
-      ];
-    }
 
     // Function to apply bold to product names and important terms
     const formatBoldText = (text: string) => {
@@ -75,7 +46,7 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
     lines.forEach((line, i) => {
       const trimmedLine = line.trim();
       
-      // Check if this is a numbered list item (improved regex to avoid duplication)
+      // Check if this is a numbered list item
       const numberedMatch = trimmedLine.match(/^(\d+)\.?\s+(.*)/);
       
       // Check if this is a bullet point

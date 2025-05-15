@@ -30,6 +30,15 @@ const ProductCard = ({ product }: ProductProps) => {
       "overflow-hidden w-full max-w-[250px] transition-all hover:shadow-md",
       'isAlternative' in product && product.isAlternative ? "border-t-2 border-t-amber-500" : ""
     )}>
+      {product.image_url && (
+        <div className="w-full h-32 overflow-hidden">
+          <img 
+            src={product.image_url} 
+            alt={product.name} 
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
       <CardHeader className="p-3">
         <h3 className="font-bold text-sm">{product.name}</h3>
         {'isAlternative' in product && product.isAlternative && (
