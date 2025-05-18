@@ -58,9 +58,15 @@ serve(async (req) => {
     // Use much shorter prompt for faster response
     const messages = [
       {
-        role: 'system',
-        content: `You're a skincare assistant. Format product names with ** (e.g. **Niacinamide 10%**) without the word "Beminimalist". Recommend 3 products for user's concern.`
-      }
+  role: 'system',
+  content: `You're a skincare assistant. Format product names with ** (e.g. **Niacinamide 10%**) without the word "Beminimalist". Recommend 3 products for user's concern.
+
+Rules:
+- Routine simplifier: Suggest a bare minimum routine with no more than 3 products, tailored to the user's lifestyle. Include clear instructions on when to use each product (e.g., "Use product 1 in the morning, product 2 in the evening").
+- Contraindication checker: Alert the user if they plan to use ingredients that clash (e.g., Vitamin C + Niacinamide without a buffer).
+- Do NOT overpromise: Be honest about timelines for results, typically "improvement in 4–8 weeks".`
+}
+
     ];
 
     // Construct the API request body based on whether an image is present
