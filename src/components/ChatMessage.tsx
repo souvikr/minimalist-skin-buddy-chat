@@ -29,13 +29,13 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
       
       // Bold important skincare terms
       const keyTerms = [
-        'Cleanser', 'Toner', 'Serum', 'Moisturizer', 'Sunscreen', 
-        'Salicylic Acid', 'Niacinamide', 'Vitamin B5', 'Vitamin C', 'Alpha Arbutin',
-        'oily', 'dry', 'sensitive', 'acne-prone', 'pigmentation', 'hydration'
+        'Morning Routine', 'Evening Routine', 'Cleanser', 'Toner', 'Serum', 'Moisturizer', 'Sunscreen', 
+        'Salicylic Acid', 'Niacinamide', 'Vitamin B5', 'Vitamin C', 'Alpha Arbutin', 'Hyaluronic Acid',
+        'oily', 'dry', 'sensitive', 'acne-prone', 'pigmentation', 'hydration', 'Step 1', 'Step 2', 'Step 3'
       ];
       
       keyTerms.forEach(term => {
-        const regex = new RegExp(`(?<![\\w\\*])(${term})(?![\\w\\*])`, 'g');
+        const regex = new RegExp(`(?<![\\w\\*])(${term})(?![\\w\\*])`, 'gi');
         formattedText = formattedText.replace(regex, '<strong>$1</strong>');
       });
       
@@ -50,7 +50,7 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
       const numberedMatch = trimmedLine.match(/^(\d+)\.?\s+(.*)/);
       
       // Check if this is a bullet point
-      const bulletMatch = trimmedLine.match(/^[\*\-]\s+(.*)/);
+      const bulletMatch = trimmedLine.match(/^[\*\-•]\s+(.*)/);
 
       // Handle numbered list
       if (numberedMatch) {
@@ -58,16 +58,15 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
           // If we were in a different type of list, close it
           if (inList) {
             if (listType === 'ul') {
-              formattedContent.push(<ul key={`list-${keyCounter++}`} className="list-disc pl-5 mb-2">{listItems}</ul>);
+              formattedContent.push(<ul key={`list-${keyCounter++}`} className="list-disc pl-6 mb-4 space-y-2">{listItems}</ul>);
             }
             listItems = [];
           }
           inList = true;
           listType = 'ol';
         }
-        // Only use the number from the original text, not duplicated
         listItems.push(
-          <li key={`item-${keyCounter++}`} className="mb-1">
+          <li key={`item-${keyCounter++}`} className="mb-2 leading-relaxed">
             {formatBoldText(numberedMatch[2])}
           </li>
         );
@@ -78,7 +77,7 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
           // If we were in a different type of list, close it
           if (inList) {
             if (listType === 'ol') {
-              formattedContent.push(<ol key={`list-${keyCounter++}`} className="list-decimal pl-5 mb-2">{listItems}</ol>);
+              formattedContent.push(<ol key={`list-${keyCounter++}`} className="list-decimal pl-6 mb-4 space-y-2">{listItems}</ol>);
             }
             listItems = [];
           }
@@ -86,7 +85,7 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
           listType = 'ul';
         }
         listItems.push(
-          <li key={`item-${keyCounter++}`} className="mb-1">
+          <li key={`item-${keyCounter++}`} className="mb-2 leading-relaxed">
             {formatBoldText(bulletMatch[1])}
           </li>
         );
@@ -96,9 +95,9 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
         // If we were in a list, close it
         if (inList) {
           if (listType === 'ul') {
-            formattedContent.push(<ul key={`list-${keyCounter++}`} className="list-disc pl-5 mb-2">{listItems}</ul>);
+            formattedContent.push(<ul key={`list-${keyCounter++}`} className="list-disc pl-6 mb-4 space-y-2">{listItems}</ul>);
           } else {
-            formattedContent.push(<ol key={`list-${keyCounter++}`} className="list-decimal pl-5 mb-3 gap-y-2">{listItems}</ol>);
+            formattedContent.push(<ol key={`list-${keyCounter++}`} className="list-decimal pl-6 mb-4 space-y-2">{listItems}</ol>);
           }
           listItems = [];
           inList = false;
@@ -107,7 +106,7 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
         // Add paragraph if not empty
         if (trimmedLine) {
           formattedContent.push(
-            <p key={`p-${keyCounter++}`} className="mb-2">
+            <p key={`p-${keyCounter++}`} className="mb-3 leading-relaxed">
               {formatBoldText(trimmedLine)}
             </p>
           );
@@ -121,9 +120,9 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
     // Close any open list at the end
     if (inList) {
       if (listType === 'ul') {
-        formattedContent.push(<ul key={`list-${keyCounter++}`} className="list-disc pl-5 mb-2">{listItems}</ul>);
+        formattedContent.push(<ul key={`list-${keyCounter++}`} className="list-disc pl-6 mb-4 space-y-2">{listItems}</ul>);
       } else {
-        formattedContent.push(<ol key={`list-${keyCounter++}`} className="list-decimal pl-5 mb-2">{listItems}</ol>);
+        formattedContent.push(<ol key={`list-${keyCounter++}`} className="list-decimal pl-6 mb-4 space-y-2">{listItems}</ol>);
       }
     }
 
@@ -134,31 +133,34 @@ const ChatMessage = ({ message, isUser, products, imageUrl }: ChatMessageProps) 
 
   return (
     <div className={cn(
-      "flex w-full mb-4",
+      "flex w-full mb-6 animate-fade-in",
       isUser ? "justify-end" : "justify-start"
     )}>
       <div className={cn(
-        "max-w-[80%] p-3 rounded-lg",
-        isUser ? "bg-black text-white rounded-tr-none" : "bg-gray-100 text-black rounded-tl-none"
+        "max-w-[85%] md:max-w-[75%] p-4 md:p-5 rounded-2xl shadow-lg border transition-all hover:shadow-xl",
+        isUser 
+          ? "bg-gradient-to-br from-black to-gray-800 text-white rounded-tr-sm border-gray-800" 
+          : "bg-white text-gray-800 rounded-tl-sm border-gray-100"
       )}>
         {/* Display the image if it exists */}
         {imageUrl && (
-          <div className="mb-3">
+          <div className="mb-4">
             <img 
               src={imageUrl} 
               alt="Uploaded" 
-              className="rounded-lg max-h-60 object-contain"
+              className="rounded-xl max-h-64 w-full object-cover border border-gray-200"
             />
           </div>
         )}
 
-        <div className="text-sm sm:text-base">
+        <div className="text-sm md:text-base">
           {formatMessage(message)}
         </div>
         
         {/* Render product cards if they exist */}
         {products && products.length > 0 && (
-          <div className="mt-3">
+          <div className="mt-5 pt-4 border-t border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">✨ Recommended Products</h4>
             {products.length === 1 ? (
               <ProductCard 
                 product={products[0]}

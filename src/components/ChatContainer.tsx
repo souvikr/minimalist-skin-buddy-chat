@@ -16,7 +16,7 @@ export interface Message {
 const ChatContainer = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
-      text: "Hello! I'm your Minimalist Skincare Assistant. How can I help you with your skin today? You can describe your skin concerns, ask for product advice, or get a personalized skincare routine. You can also upload a photo of your skin for a more personalized recommendation.",
+      text: "Hello! I'm your Minimalist Skincare Assistant. 💫\n\nI'll help you create a personalized skincare routine and recommend the perfect products for your skin type and concerns.\n\nYou can:\n• Describe your skin concerns\n• Upload a photo of your skin\n• Ask for a complete routine\n• Get specific product recommendations\n\nWhat's your main skin concern today?",
       isUser: false
     }
   ]);
@@ -119,8 +119,8 @@ const ChatContainer = () => {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full relative">
-      <div className="flex-1 overflow-y-auto p-4">
+    <div className="flex flex-col h-full relative bg-gradient-to-br from-gray-50 to-white">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
         {messages.map((msg, index) => (
           <ChatMessage 
             key={index} 
@@ -132,11 +132,12 @@ const ChatContainer = () => {
         ))}
         {isLoading && (
           <div className="flex justify-start mb-4">
-            <div className="bg-gray-100 py-2 px-4 rounded-lg max-w-[80%]">
-              <div className="flex space-x-2">
+            <div className="bg-white shadow-lg border border-gray-100 py-4 px-6 rounded-2xl max-w-[80%]">
+              <div className="flex space-x-2 items-center">
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                <span className="text-xs text-gray-500 ml-2">Creating your skincare routine...</span>
               </div>
             </div>
           </div>

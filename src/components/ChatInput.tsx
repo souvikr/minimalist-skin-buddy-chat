@@ -1,6 +1,6 @@
 
 import React, { useState, FormEvent, useRef, ChangeEvent } from 'react';
-import { Send, Paperclip, X } from 'lucide-react';
+import { Send, Paperclip, X, Camera } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface ChatInputProps {
@@ -71,56 +71,63 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2 border-t border-gray-200 p-4">
-      {imagePreview && (
-        <div className="relative inline-block">
-          <img 
-            src={imagePreview} 
-            alt="Selected" 
-            className="h-24 rounded-lg object-cover" 
+    <div className="border-t border-gray-200 bg-white/80 backdrop-blur-sm">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4 md:p-6">
+        {imagePreview && (
+          <div className="relative inline-block animate-scale-in">
+            <img 
+              src={imagePreview} 
+              alt="Selected" 
+              className="h-24 md:h-32 rounded-xl object-cover border-2 border-gray-200 shadow-md" 
+            />
+            <button
+              type="button"
+              onClick={removeImage}
+              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors shadow-lg"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+        
+        <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-2 border border-gray-200 focus-within:border-black focus-within:bg-white transition-all">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageChange}
+            accept="image/*"
+            className="hidden"
           />
           <button
             type="button"
-            onClick={removeImage}
-            className="absolute -top-2 -right-2 bg-black text-white rounded-full p-1"
+            onClick={handleAttachImage}
+            className="p-2.5 text-gray-500 hover:text-black hover:bg-gray-100 rounded-xl transition-all"
+            aria-label="Attach image"
           >
-            <X size={14} />
+            <Camera size={20} />
+          </button>
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={selectedImage ? "Describe your skin concern..." : "Ask about your skincare routine or concerns..."}
+            className="flex-1 p-2.5 bg-transparent focus:outline-none text-gray-800 placeholder-gray-500"
+          />
+          <button
+            type="submit"
+            className={cn(
+              "p-2.5 rounded-xl transition-all",
+              (message.trim() || selectedImage)
+                ? "bg-black text-white hover:bg-gray-800 shadow-md"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            )}
+            disabled={!message.trim() && !selectedImage}
+          >
+            <Send size={20} />
           </button>
         </div>
-      )}
-      
-      <div className="flex items-center gap-2">
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleImageChange}
-          accept="image/*"
-          className="hidden"
-        />
-        <button
-          type="button"
-          onClick={handleAttachImage}
-          className="p-3 text-gray-500 hover:text-gray-800 transition-colors"
-          aria-label="Attach image"
-        >
-          <Paperclip size={18} />
-        </button>
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder={selectedImage ? "Add a description of your skin concern..." : "Type your skin concern here..."}
-          className="flex-1 p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-black"
-        />
-        <button
-          type="submit"
-          className="p-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-          disabled={!message.trim() && !selectedImage}
-        >
-          <Send size={18} />
-        </button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 };
 

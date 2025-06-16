@@ -16,19 +16,21 @@ interface ProductCarouselProps {
 
 const ProductCarousel = ({ products }: ProductCarouselProps) => {
   return (
-    <div className="w-full max-w-md">
-      <Carousel className="w-full">
-        <CarouselContent>
+    <div className="w-full max-w-lg mx-auto">
+      <Carousel className="w-full" opts={{ align: "start", loop: true }}>
+        <CarouselContent className="-ml-2 md:-ml-4">
           {products.map((product, index) => (
-            <CarouselItem key={product.id || index} className="basis-full md:basis-full h-[360px] px-1">
+            <CarouselItem key={product.id || index} className="pl-2 md:pl-4 basis-4/5 md:basis-3/4">
               <div className="h-full">
                 <ProductCard product={product} />
               </div>
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious />
-        <CarouselNext />
+        <div className="flex justify-center gap-4 mt-4">
+          <CarouselPrevious className="relative transform-none translate-x-0 translate-y-0 bg-white border-gray-200 hover:bg-gray-50" />
+          <CarouselNext className="relative transform-none translate-x-0 translate-y-0 bg-white border-gray-200 hover:bg-gray-50" />
+        </div>
       </Carousel>
     </div>
   );

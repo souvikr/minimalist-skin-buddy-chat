@@ -55,24 +55,51 @@ serve(async (req) => {
     // Create Supabase client with service role key to bypass RLS
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Use much shorter prompt for faster response
+    // Enhanced prompt for better skincare routine responses
     const messages = [
       {
-  role: 'system',
-  content: `You're a skincare assistant. Format product names with ** (e.g. **Niacinamide 10%**) without the word "Beminimalist". Recommend 3 products for user's concern.
+        role: 'system',
+        content: `You're a professional skincare consultant specializing in minimalist routines. 
 
-Rules:
-- Routine simplifier: Suggest a bare minimum routine with no more than 3 products, tailored to the user's lifestyle. Include clear instructions on when to use each product (e.g., "Use product 1 in the morning, product 2 in the evening").
-- Contraindication checker: Alert the user if they plan to use ingredients that clash (e.g., Vitamin C + Niacinamide without a buffer).
-- Do NOT overpromise: Be honest about timelines for results, typically "improvement in 4–8 weeks".`
-}
+RESPONSE STRUCTURE:
+1. First, provide a complete skincare routine (morning and evening steps)
+2. Then recommend 3 specific products
 
+FORMATTING RULES:
+- Use ** around product names (e.g. **Niacinamide 10%**)
+- Structure routines with clear Morning/Evening sections
+- Number each step (1., 2., 3.)
+- Use bullet points for tips
+- Be specific about when to use each product
+
+ROUTINE GUIDELINES:
+- Keep routines simple (3-4 steps max)
+- Always include cleanser and moisturizer
+- Add sunscreen for morning
+- Suggest active ingredients based on concerns
+- Provide timing instructions
+
+PRODUCT RECOMMENDATIONS:
+- Recommend exactly 3 products that match the routine
+- Focus on key ingredients for their concerns
+- Include gentle options for sensitive skin
+- Explain why each product helps
+
+CONCERNS TO ADDRESS:
+- Acne: Salicylic Acid, Niacinamide
+- Pigmentation: Vitamin C, Alpha Arbutin
+- Aging: Retinol, Peptides
+- Hydration: Hyaluronic Acid, Ceramides
+- Sensitivity: Gentle formulas, no fragrance
+
+Be encouraging and realistic about results (4-8 weeks for improvement).`
+      }
     ];
 
     // Construct the API request body based on whether an image is present
     let openAIRequestBody: any = {
       model: 'gpt-4o',
-      max_tokens: 400,
+      max_tokens: 500,
     };
     
     if (imageData) {
@@ -82,7 +109,7 @@ Rules:
         {
           role: 'user',
           content: [
-            { type: 'text', text: message || "What can you recommend for this skin condition?" },
+            { type: 'text', text: message || "Please analyze this skin concern and provide a complete skincare routine with product recommendations." },
             { type: 'image_url', image_url: { url: imageData } }
           ]
         }
@@ -133,18 +160,6 @@ Rules:
     
     console.log("Checking products table access...");
     
-    // First, check if we have access to the products table
-    const { data: testAccess, error: accessError } = await supabase
-      .from('products')
-      .select('count()')
-      .limit(1);
-      
-    if (accessError) {
-      console.error("Error accessing products table:", accessError);
-    } else {
-      console.log("Successfully accessed products table");
-    }
-    
     if (productMatches && productMatches.length > 0) {
       // Extract product names without the asterisks
       const extractedProductNames = productMatches.map(match => 
@@ -155,6 +170,8 @@ Rules:
       
       // First try exact matches
       for (const name of extractedProductNames) {
+        if (recommendedProducts.length >= 3) break;
+        
         // Try to find exact match first
         const { data: exactMatches, error: exactError } = await supabase
           .from('products')
@@ -164,13 +181,14 @@ Rules:
           
         if (!exactError && exactMatches && exactMatches.length > 0) {
           recommendedProducts.push(exactMatches[0]);
-          if (recommendedProducts.length >= 3) break;
         }
       }
       
       // If we don't have 3 products yet, look for partial matches
       if (recommendedProducts.length < 3) {
         for (const name of extractedProductNames) {
+          if (recommendedProducts.length >= 3) break;
+          
           // Try matching keywords from the product name
           const keywords = name.toLowerCase().split(/\s+/).filter(w => w.length > 3);
           
@@ -207,8 +225,7 @@ Rules:
         const { data: keywordMatches, error: keywordError } = await supabase
           .from('products')
           .select('*')
-          .or(`name.ilike.%${keyword}%, description.ilike.%${keyword}%, 
-               skin_concerns.cs.{${keyword}}, key_ingredients.cs.{${keyword}}`)
+          .or(`name.ilike.%${keyword}%, description.ilike.%${keyword}%`)
           .limit(3 - recommendedProducts.length);
           
         if (!keywordError && keywordMatches && keywordMatches.length > 0) {
@@ -223,7 +240,7 @@ Rules:
       }
     }
     
-    // If we still don't have enough products, get random ones as fallback
+    // If we still don't have enough products, get popular ones as fallback
     if (recommendedProducts.length < 3) {
       const { data: defaultProducts, error: defaultError } = await supabase
         .from('products')
