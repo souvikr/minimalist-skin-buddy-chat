@@ -1,7 +1,7 @@
-
 import React, { useState, FormEvent, useRef, ChangeEvent } from 'react';
 import { Send, Paperclip, X, Camera } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
   onSendMessage: (message: string, imageFile?: File) => void;
